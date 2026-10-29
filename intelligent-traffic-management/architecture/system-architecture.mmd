@@ -1,0 +1,73 @@
+flowchart TD
+    %% Input Layer
+    subgraph INPUT["1. Video Ingestion Layer"]
+        A1["Traffic Video Source<br/>(Recorded Video / CCTV Stream)"]
+        A2["Video Preprocessing<br/>(Frame Extraction, Scaling, ROI Masking)"]
+        A1 --> A2
+    end
+
+    %% Computer Vision Processing
+    subgraph CV["2. Computer Vision Pipeline"]
+        B1["Vehicle Detection Module<br/>(YOLO Detector)"]
+        B2["Multi-Object Tracking<br/>(DeepSORT / ByteTrack Tracker)"]
+        B3["Vehicle Classification & Filtering<br/>(Car, Motorcycle, Bus, Truck)"]
+        B4["Emergency Vehicle Recognition<br/>(Ambulance, Fire Brigade)"]
+
+        A2 --> B1
+        B1 -->|Bounding Boxes + Classes| B2
+        B1 -->|Vehicle Features| B3
+        B1 -->|Emergency Signatures| B4
+    end
+
+    %% Traffic Analytics Layer
+    subgraph ANALYTICS["3. Traffic Analytics Subsystem"]
+        C1["Lane-wise Vehicle Counting<br/>(Virtual Detection Crossing Lines)"]
+        C2["Traffic Density Estimation<br/>(Vehicle Count + ROI Area Occupancy)"]
+        C3["Congestion State Classifier<br/>(Low / Medium / High)"]
+        C4["Priority Interrupt Trigger<br/>(Emergency Flag)"]
+
+        B2 --> C1
+        B3 --> C1
+        C1 --> C2
+        C2 --> C3
+        B4 --> C4
+    end
+
+    %% Decision & Control Engine
+    subgraph DECISION["4. Decision & Recommendation Engine"]
+        D1["Adaptive Signal Calculator<br/>(Dynamic Green Time Allocation)"]
+        D2["Emergency Override Handler<br/>(Priority Corridor Clearance)"]
+        D3["Signal Timing Advisory<br/>(Optimized Phase Durations)"]
+
+        C3 --> D1
+        C2 --> D1
+        C4 --> D2
+        D2 -->|Preemption Request| D1
+        D1 --> D3
+    end
+
+    %% Presentation & Storage Layer
+    subgraph OUTPUT["5. Presentation & Monitoring Layer"]
+        E1["Interactive Streamlit Dashboard<br/>(Live Video, Gauges, Real-time Alerts)"]
+        E2["Performance & Historical Storage<br/>(CSV Logs, Analytics, Evaluation Benchmarks)"]
+
+        D3 --> E1
+        C1 --> E1
+        C3 --> E1
+        C4 --> E1
+        D3 --> E2
+        C2 --> E2
+    end
+
+    %% Styling
+    classDef inputStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef cvStyle fill:#ede7f6,stroke:#512da8,stroke-width:2px,color:#311b92;
+    classDef analyticsStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+    classDef decisionStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef outputStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f;
+
+    class A1,A2 inputStyle;
+    class B1,B2,B3,B4 cvStyle;
+    class C1,C2,C3,C4 analyticsStyle;
+    class D1,D2,D3 decisionStyle;
+    class E1,E2 outputStyle;

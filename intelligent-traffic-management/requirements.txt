@@ -1,0 +1,23 @@
+# Intelligent Traffic Management System - Core Dependencies
+# Python Version: Python 3.10 to 3.13 supported
+
+# Computer Vision & Image Processing
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=9.5.0
+
+# Data Analysis & Metrics
+pandas>=2.0.0
+matplotlib>=3.7.0
+PyYAML>=6.0
+
+# Interactive Dashboard
+streamlit>=1.30.0
+
+# Optional / Phase III Integration Dependencies:
+# Uncomment when ready to test full deep learning inference:
+# ultralytics>=8.1.0        # YOLOv8 object detection inference
+# deep-sort-realtime>=1.3.2 # DeepSORT multi-object tracking
+# torch>=2.0.0              # PyTorch backend for YOLO/DeepSORT
+# torchvision>=0.15.0       # Vision transforms
+# pytest>=7.4.0             # Automated testing framework
