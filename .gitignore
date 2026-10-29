@@ -1,0 +1,40 @@
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Model Weights and Large Binaries
+*.pt
+*.pth
+*.weights
+*.onnx
+*.engine
+*.tflite
+models/weights/
+weights/
+
+# Video files (Exclude large raw media from Git commits)
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+temp_uploads/
+
+# IDE and Operating System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,4 @@
+video_sequence,hardware_platform,resolution,fps_throughput,detection_mAP_50,tracking_MOTA,counting_MAPE_pct,baseline_fixed_wait_s,adaptive_wait_s,delay_reduction_pct
+sample_traffic_day.mp4,Intel_Core_i7,1920x1080,PENDING,PENDING,PENDING,PENDING,144,PENDING,PENDING
+sample_traffic_night.mp4,Intel_Core_i7,1920x1080,PENDING,PENDING,PENDING,PENDING,144,PENDING,PENDING
+sample_traffic_emergency.mp4,Intel_Core_i7,1920x1080,PENDING,PENDING,PENDING,PENDING,144,PENDING,PENDING

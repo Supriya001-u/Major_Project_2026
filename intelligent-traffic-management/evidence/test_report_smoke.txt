@@ -1,0 +1,49 @@
+================================================================================
+PHASE III EVALUATION EVIDENCE: AUTOMATED UNIT SMOKE TEST REPORT
+================================================================================
+Timestamp: 2026-10-29T23:56:58+05:30
+Execution Command: python -m unittest discover -s tests
+Environment: Python 3.13.5 (Windows 64-bit)
+Target Repository: intelligent-traffic-management
+Test Module: tests/test_smoke.py
+
+--- [VERBATIM TEST OUTPUT] ---
+....Weights file not found at 'C:\Users\supri\OneDrive\Desktop\Major_Project_2026\intelligent-traffic-management\models\weights\nonexistent_model.pt'. Download 'yolov8n.pt' and place it in 'models/weights/' for Phase III detection.
+...
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK
+
+--- [DETAILED TEST CASE SUMMARY] ---
+1. test_config_initialization:
+   - Status: PASSED
+   - Description: Validates engineering constraints for min_green (15s) and max_green (90s).
+
+2. test_density_bounds:
+   - Status: PASSED
+   - Description: Confirms spatial density calculations are strictly bounded in [0.0, 1.0].
+
+3. test_congestion_classification:
+   - Status: PASSED
+   - Description: Verifies state transitions for LOW (<0.35), MEDIUM (0.35-0.70), HIGH (>=0.70).
+
+4. test_signal_timing_invariants:
+   - Status: PASSED
+   - Description: Confirms proportional green allocations satisfy min/max constraints and asymmetric distribution.
+
+5. test_signal_timing_zero_traffic:
+   - Status: PASSED
+   - Description: Verifies safe equal minimum green allocation when traffic is zero (no division-by-zero).
+
+6. test_emergency_preemption_override:
+   - Status: PASSED
+   - Description: Verifies that emergency vehicle flags trigger immediate 45s priority green and 15s safe opposing green.
+
+7. test_modular_detector_missing_weights:
+   - Status: PASSED
+   - Description: Confirms detector returns diagnostic message without crashing or fabricating fake outputs.
+
+================================================================================
+FINAL OUTCOME: 7 PASSED, 0 FAILED, 0 ERRORS [SUCCESS]
+================================================================================

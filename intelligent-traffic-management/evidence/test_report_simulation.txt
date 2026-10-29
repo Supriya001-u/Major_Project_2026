@@ -1,0 +1,46 @@
+================================================================================
+PHASE III EVALUATION EVIDENCE: ADAPTIVE SIGNAL TIMING & EMERGENCY OVERRIDE
+================================================================================
+Timestamp: 2026-10-29T23:58:27+05:30
+Execution Command: python src/main.py --simulate --emergency
+
+--- [VERBATIM COMMAND OUTPUT] ---
+================================================================================
+   INTELLIGENT TRAFFIC MANAGEMENT SYSTEM USING COMPUTER VISION
+   B.Tech CSE (AI & ML) Major Project | Academic Session 2026-2027
+   IILM University, Greater Noida
+   Supervisor: Dr. Lalit Mohan Gupta
+   Team: Supriya, Md Saddam Hussain, Keshav Kulshresth, Aditya Kumar Saxena
+================================================================================
+
+[*] Running Adaptive Traffic Signal Advisory Simulation...
+
+--- [Input Directional Vehicular Volume] ---
+  • North    Approach: 25 vehicles
+  • South    Approach: 18 vehicles
+  • East     Approach: 8 vehicles
+  • West     Approach: 4 vehicles
+
+[!] Simulated Emergency Vehicle Alert: Active on North Approach!
+
+--- [Optimized Adaptive Signal Advisory] ---
+  • North   : Green = 45s (+15s vs fixed)  | Congestion: HIGH
+  • South   : Green = 15s (-15s vs fixed)  | Congestion: MEDIUM
+  • East    : Green = 15s (-15s vs fixed)  | Congestion: LOW
+  • West    : Green = 15s (-15s vs fixed)  | Congestion: LOW
+
+Total Calculated Cycle Length: 114s (Baseline Fixed: 144s)
+================================================================================
+
+--- [MATHEMATICAL ALGORITHM VERIFICATION] ---
+1. Normal Proportional Demand (without emergency):
+   - North (25 veh) -> 31s (+1s vs 30s fixed)
+   - South (18 veh) -> 27s (-3s vs 30s fixed)
+   - East (8 veh)   -> 20s (-10s vs 30s fixed)
+   - West (4 veh)   -> 18s (-12s vs 30s fixed)
+   - Total Cycle = 120s vs Fixed 144s (16.7% cycle compression under low total volume)
+
+2. Emergency Priority Override (North):
+   - North immediately allocated emergency clearance green = 45s (+15s above fixed)
+   - Non-emergency opposing lanes clamped to safety minimum = 15s
+   - Total Emergency Cycle = 114s, guaranteeing rapid corridor evacuation.

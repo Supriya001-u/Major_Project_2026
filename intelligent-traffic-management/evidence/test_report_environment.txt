@@ -1,0 +1,39 @@
+================================================================================
+PHASE III EVALUATION EVIDENCE: SYSTEM ENVIRONMENT DIAGNOSTIC REPORT
+================================================================================
+Timestamp: 2026-10-30T00:05:01+05:30
+Execution Command: python src/main.py --check-env
+Target Directory: intelligent-traffic-management
+
+--- [VERBATIM COMMAND OUTPUT] ---
+Weights file not found at 'C:\Users\supri\OneDrive\Desktop\Major_Project_2026\intelligent-traffic-management\models\weights\yolov8n.pt'. Download 'yolov8n.pt' and place it in 'models/weights/' for Phase III detection.
+The 'deep-sort-realtime' package is not installed. Run 'pip install deep-sort-realtime' for Phase III multi-object tracking.
+
+================================================================================
+   INTELLIGENT TRAFFIC MANAGEMENT SYSTEM USING COMPUTER VISION
+   B.Tech CSE (AI & ML) Major Project | Academic Session 2026-2027
+   IILM University, Greater Noida
+   Supervisor: Dr. Lalit Mohan Gupta
+   Team: Supriya, Md Saddam Hussain, Keshav Kulshresth, Aditya Kumar Saxena
+================================================================================
+
+[*] Performing System Environment & Dependency Diagnostics...
+
+  • Python Runtime               : 3.13.5 (Supported: 3.10 - 3.13)
+  • OpenCV Video Engine          : INSTALLED (v4.12.0)
+  • NumPy Math Engine            : INSTALLED (v2.2.6)
+  • Pandas Data Processing       : INSTALLED (v3.1.0)
+  • Matplotlib Plotting          : INSTALLED (v3.10.6)
+  • Streamlit Dashboard          : INSTALLED (v1.66.1)
+  • Ultralytics YOLO (Phase III) : NOT INSTALLED (Optional for Mid-Term)
+  • DeepSORT Tracking (Phase III): NOT INSTALLED (Optional for Mid-Term)
+
+[*] Checking Model Checkpoint Files:
+  • YOLO Weights : NOT FOUND at 'C:\Users\supri\OneDrive\Desktop\Major_Project_2026\intelligent-traffic-management\models\weights\yolov8n.pt' (Place 'yolov8n.pt' here for Phase III inference)
+
+[*] Subsystem Readiness:
+  • Detector Subsystem   : Weights file not found at 'C:\Users\supri\OneDrive\Desktop\Major_Project_2026\intelligent-traffic-management\models\weights\yolov8n.pt'. Download 'yolov8n.pt' and place it in 'models/weights/' for Phase III detection.
+  • Tracker Subsystem    : The 'deep-sort-realtime' package is not installed. Run 'pip install deep-sort-realtime' for Phase III multi-object tracking.
+  • Emergency Handler    : Emergency logic handler active. Vision classification depends on YOLO weights.
+  • Adaptive Engine      : Active and verified.
+================================================================================

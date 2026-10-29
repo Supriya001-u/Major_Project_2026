@@ -1,0 +1,27 @@
+================================================================================
+PHASE III EVALUATION EVIDENCE: STREAMLIT DASHBOARD SERVER VERIFICATION
+================================================================================
+Timestamp: 2026-10-30T00:05:47+05:30
+Execution Command: streamlit run src/dashboard/app.py --server.headless=true --server.port=8501
+Dashboard Entrypoint: src/dashboard/app.py
+Framework: Streamlit 1.66.1 (Uvicorn ASGI Backend)
+
+--- [VERBATIM SERVER LOG] ---
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+2026-10-30 00:05:47.363 Uvicorn server started on :::8501
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.9:8501
+  External URL: http://103.211.12.193:8501
+
+--- [VERIFIED RUNTIME CAPABILITIES] ---
+1. Top Academic Header: Displays IILM University, Supervisor Dr. Lalit Mohan Gupta, and Team Members.
+2. Sidebar Diagnostic Monitor: Real-time checks for OpenCV 4.12.0, NumPy 2.2.6, and subsystem states.
+3. Tab 1 (Video Ingestion & Inspection): File uploader accepting .mp4, .avi, .mov, extracting metadata and rendering video preview.
+4. Tab 2 (Adaptive Signal Simulator): Directional sliders for North/South/East/West vehicle counts, emergency preemption toggle, and live comparative metrics.
+5. Tab 3 (System Architecture): Embedded ASCII and dataflow diagrams.
+6. Tab 4 (Evaluation Checklist): Interactive Mid-Term and Phase III evidence checkboxes.
+================================================================================
