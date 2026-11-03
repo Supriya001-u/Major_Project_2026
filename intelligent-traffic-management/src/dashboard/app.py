@@ -1,18 +1,25 @@
 """
-Streamlit Web Dashboard
-Intelligent Traffic Management System Using Computer Vision
-Session 2026-2027 | School of Computer Science and Engineering | IILM University, Greater Noida
+Streamlit Dashboard - Intelligent Traffic Management System Using Computer Vision
+B.Tech Major Project (AI & ML) | Academic Session 2026-2027
+School of Computer Science and Engineering | IILM University, Greater Noida
+
+Dashboard for analysing recorded traffic video (software prototype)
 """
 
 import os
 import sys
 import tempfile
 from pathlib import Path
+
 import cv2
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import streamlit as st
 
-# Ensure repository root is on sys.path
+# ── Ensure repository root is on sys.path ──────────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -23,406 +30,569 @@ from src.tracking.tracker import VehicleTracker
 from src.traffic_analysis.density import calculate_lane_density, classify_congestion
 from src.traffic_analysis.signal_advisor import calculate_adaptive_signal_times
 from src.emergency_detection.emergency import EmergencyVehicleDetector
+from src.traffic_analysis.dashboard_pipeline import process_traffic_video
 
-# Page configuration
+# ── Page configuration ─────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Intelligent Traffic Management System | IILM University",
-    page_icon="🚦",
+    page_title="Intelligent Traffic Management System",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Custom Styling for Academic & Professional Aesthetics
+# ── Global CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .main-header {
-        background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%);
-        padding: 24px 28px;
-        border-radius: 10px;
-        color: white;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .main-header h1 {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 700;
-        color: #ffffff;
-    }
-    .main-header p {
-        margin: 6px 0 0 0;
-        font-size: 14px;
-        opacity: 0.92;
-    }
-    .metric-card {
-        background-color: #f8f9fa;
-        border-left: 5px solid #1976d2;
-        padding: 16px;
-        border-radius: 6px;
-        margin-bottom: 12px;
-    }
-    .status-badge-ok {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-weight: 600;
-        font-size: 13px;
-    }
-    .status-badge-pending {
-        background-color: #fff3e0;
-        color: #ef6c00;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-weight: 600;
-        font-size: 13px;
-    }
+.main-header {
+    background: #ffffff;
+    padding: 18px 0;
+    color: #172a3a;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #dce2e8;
+}
+.main-header h1 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 700;
+    color: #172a3a;
+}
+.main-header .subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #64748b;
+}
+.section-heading {
+    font-size: 18px;
+    font-weight: 650;
+    color: #172a3a;
+    border-left: 3px solid #24527a;
+    padding-left: 10px;
+    margin: 20px 0 12px;
+}
+.notice-box {
+    background: #f8fafc;
+    border: 1px solid #dce2e8;
+    border-radius: 5px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: #334155;
+}
+.notice-box.green { background: #f0f7f1; border-color: #b8d8bd; }
+.notice-box.red { background: #fff4f4; border-color: #e5bcbc; }
+.notice-box.blue { background: #f1f6fb; border-color: #c5d7e8; }
+.badge-ok, .badge-pending, .badge-sim {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.badge-ok { background: #e8f3e9; color: #276333; }
+.badge-pending { background: #fff4df; color: #875b13; }
+.badge-sim { background: #edf2f7; color: #334e68; }
+.metric-card {
+    background: #f8fafc;
+    border: 1px solid #dce2e8;
+    border-radius: 5px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+.metric-card .label { font-size: 12px; color: #64748b; }
+.metric-card .value { font-size: 23px; font-weight: 700; color: #172a3a; }
+.demo-strip {
+    background: #f1f5f9;
+    color: #172a3a;
+    padding: 8px 12px;
+    border: 1px solid #dce2e8;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+.signal-card {
+    border: 1px solid #dce2e8;
+    border-radius: 5px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 6px;
+}
+.signal-low { background: #f0f7f1; color: #276333; }
+.signal-medium { background: #fff8e8; color: #875b13; }
+.signal-high { background: #fff1f1; color: #922f2f; }
+.signal-emerg { background: #f8eef2; color: #782b4b; }
 </style>
 """, unsafe_allow_html=True)
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
 def extract_video_metadata(video_path: str) -> dict:
-    """Extracts resolution, frame rate, duration, and frame count via OpenCV."""
+    """Extracts resolution, frame-rate, duration, and frame count via OpenCV."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        return {"error": "Could not open video file."}
+        return {"error": "Could not open video file. Please upload a valid MP4/AVI/MOV."}
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
-
-    # Decode FourCC code
-    codec = "".join([chr((fourcc >> 8 * i) & 0xFF) for i in range(4)])
+    width      = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height     = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps        = cap.get(cv2.CAP_PROP_FPS)
+    frame_count= int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fourcc     = int(cap.get(cv2.CAP_PROP_FOURCC))
+    codec      = "".join([chr((fourcc >> 8 * i) & 0xFF) for i in range(4)]).strip() or "Standard"
     cap.release()
 
     duration_sec = (frame_count / fps) if fps and fps > 0 else 0.0
-
     return {
-        "width": width,
-        "height": height,
-        "resolution": f"{width} x {height}",
+        "width": width, "height": height,
+        "resolution": f"{width} x {height} px",
         "fps": round(fps, 2) if fps else "N/A",
         "frame_count": frame_count,
         "duration_sec": round(duration_sec, 2),
         "duration_formatted": f"{int(duration_sec // 60)}m {int(duration_sec % 60)}s",
-        "codec": codec.strip() or "Standard"
+        "codec": codec,
     }
 
 
-# Top Academic Banner
+def congestion_color(level: str) -> str:
+    return {"LOW": "#2e7d32", "MEDIUM": "#f57f17", "HIGH": "#c62828"}.get(level, "#555")
+
+
+def draw_signal_comparison(green_times: dict, default_green: int) -> plt.Figure:
+    """Bar chart comparing adaptive green times vs fixed-time baseline."""
+    lanes = list(green_times.keys())
+    adapted = [green_times[l] for l in lanes]
+    fixed   = [default_green] * len(lanes)
+
+    x = np.arange(len(lanes))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(8, 3))
+    fig.patch.set_facecolor("#f0f4f8")
+    ax.set_facecolor("#f8fafc")
+
+    b1 = ax.bar(x - width / 2, adapted, width, label="Adaptive (This System)",
+                color="#1565c0", edgecolor="white", linewidth=0.8)
+    b2 = ax.bar(x + width / 2, fixed,   width, label=f"Fixed-Time Baseline ({default_green}s)",
+                color="#9e9e9e", edgecolor="white", linewidth=0.8, alpha=0.75)
+
+    ax.set_xticks(x); ax.set_xticklabels(lanes, fontsize=10)
+    ax.set_ylabel("Green Time (seconds)", fontsize=9)
+    ax.set_title("Adaptive vs Fixed-Time Signal Comparison  [SIMULATION]",
+                 fontsize=10, fontweight="bold", color="#0d2b6b")
+    ax.set_ylim(0, signal_config.max_green_time + 15)
+    ax.axhline(signal_config.min_green_time, color="#388e3c", ls=":", lw=1.2, label=f"Min green ({signal_config.min_green_time}s)")
+    ax.axhline(signal_config.max_green_time, color="#c62828",  ls=":", lw=1.2, label=f"Max green ({signal_config.max_green_time}s)")
+    ax.legend(fontsize=8)
+    ax.spines[["top", "right"]].set_visible(False)
+
+    for bar in b1:
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
+                f"{int(bar.get_height())}s", ha="center", va="bottom", fontsize=9, fontweight="bold", color="#1565c0")
+
+    plt.tight_layout(pad=0.8)
+    return fig
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MODULE READINESS (checked once, cached in session)
+# ══════════════════════════════════════════════════════════════════════════════
+if "modules_checked" not in st.session_state:
+    st.session_state["detector"] = VehicleDetector()
+    st.session_state["tracker"] = VehicleTracker()
+    st.session_state["emergency_detector"] = EmergencyVehicleDetector()
+    st.session_state["det_ok"], st.session_state["det_msg"] = st.session_state["detector"].is_ready()
+    st.session_state["trk_ok"], st.session_state["trk_msg"] = st.session_state["tracker"].is_ready()
+    st.session_state["emg_ok"], st.session_state["emg_msg"] = st.session_state["emergency_detector"].is_ready()
+    st.session_state["modules_checked"] = True
+
+det_ok  = st.session_state["det_ok"]
+trk_ok  = st.session_state["trk_ok"]
+emg_ok  = st.session_state["emg_ok"]
+det_msg = st.session_state["det_msg"]
+trk_msg = st.session_state["trk_msg"]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN HEADER
 st.markdown("""
 <div class="main-header">
-    <h1>🚦 Intelligent Traffic Management System Using Computer Vision</h1>
-    <p><strong>B.Tech Major Project (AI & ML) | Academic Session 2026–2027</strong><br/>
-    School of Computer Science and Engineering, IILM University, Greater Noida<br/>
-    <em>Supervisor:</em> Dr. Lalit Mohan Gupta | <em>Team:</em> Supriya, Md Saddam Hussain, Keshav Kulshresth, Aditya Kumar Saxena
+    <h1>Intelligent Traffic Management System</h1>
+    <p class="subtitle">
+        Computer Vision Based Traffic Analysis and Adaptive Signal Recommendation<br>
+        B.Tech CSE (AI & ML) | IILM University | Academic Session 2026-2027
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-
-# Sidebar Configuration & Diagnostic Panel
+# SYSTEM STATUS
 with st.sidebar:
-    st.subheader("⚙️ System Status & Environment")
-    st.caption("Hardware-free Software Prototype")
+    st.markdown("### System Status")
+    st.caption("Software prototype")
 
-    # Module readiness checks
-    detector = VehicleDetector()
-    tracker = VehicleTracker()
-    emerg_handler = EmergencyVehicleDetector()
-
-    det_ok, det_msg = detector.is_ready()
-    trk_ok, trk_msg = tracker.is_ready()
-    emg_ok, emg_msg = emerg_handler.is_ready()
-
-    st.markdown("**Module Health:**")
-    st.write("• **Video Engine (OpenCV):**", f"`v{cv2.__version__}` ✅")
-    st.write("• **NumPy Math Engine:**", f"`v{np.__version__}` ✅")
-    
-    if det_ok:
-        st.markdown('• **YOLO Detector:** <span class="status-badge-ok">ACTIVE</span>', unsafe_allow_html=True)
-    else:
-        st.markdown('• **YOLO Detector:** <span class="status-badge-pending">PHASE III WEIGHTS PENDING</span>', unsafe_allow_html=True)
-
-    if trk_ok:
-        st.markdown('• **DeepSORT Tracker:** <span class="status-badge-ok">ACTIVE</span>', unsafe_allow_html=True)
-    else:
-        st.markdown('• **DeepSORT Tracker:** <span class="status-badge-pending">PHASE III PENDING</span>', unsafe_allow_html=True)
-
-    st.markdown('• **Adaptive Signal Engine:** <span class="status-badge-ok">ACTIVE</span>', unsafe_allow_html=True)
+    st.write("YOLO detector:", "Ready" if det_ok else "Unavailable")
+    st.write("DeepSORT tracker:", "Ready" if trk_ok else "Unavailable")
 
     st.divider()
-    st.subheader("📋 Evaluation Stage")
-    eval_stage = st.radio(
-        "Current Evaluation Target:",
-        ["Mid-Term Evaluation (Foundation & Architecture)", "Phase III Evaluation (Full Integration)"]
-    )
-    if "Mid-Term" in eval_stage:
-        st.info("Mid-Term Focus: Background, Architecture, Video Metadata Ingestion, Signal Timing Invariants.")
-    else:
-        st.warning("Phase III Focus: Model weights, real-time FPS benchmarks, ground-truth counting validation.")
+    st.markdown("### Project Information")
+    st.caption("IILM University, Greater Noida")
+    st.caption("Academic Session 2026-2027")
+    st.caption("Supervisor: Dr. Lalit Mohan Gupta")
 
-    st.divider()
-    st.caption("Repository: `intelligent-traffic-management`")
+# Existing simulator compatibility
+demo_mode = False
 
-
-# Main Dashboard Tabs
-tab_ingest, tab_sim, tab_arch, tab_eval = st.tabs([
-    "📹 Video Ingestion & Inspection",
-    "🎛️ Adaptive Signal Simulator",
-    "🏛️ System Architecture",
-    "✅ Evaluation Checklist"
+# MAIN NAVIGATION
+tab_overview, tab_video, tab_sim, tab_arch, tab_status = st.tabs([
+    "Overview",
+    "Traffic Analysis",
+    "Signal Recommendations",
+    "System Architecture",
+    "Implementation Status"
 ])
 
 
-# TAB 1: Video Ingestion & Metadata Inspector
-with tab_ingest:
-    st.subheader("1. Traffic Video Ingestion & Metadata Inspection")
+# TAB 0 - OVERVIEW
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 1 - OVERVIEW
+with tab_overview:
+    st.markdown('<div class="section-heading">Project Overview</div>', unsafe_allow_html=True)
     st.write(
-        "Upload a recorded traffic video (`.mp4`, `.avi`, `.mov`) to inspect stream parameters, "
-        "verify frame decoding, and prepare for computer vision processing."
+        "This is a software prototype that analyses a recorded traffic video and "
+        "generates traffic signal timing recommendations. It does not control real traffic signals."
     )
 
-    col1, col2 = st.columns([1, 1])
+    st.markdown("\n".join([
+        "**What the system does**",
+        "",
+        "- Detects vehicles in each video frame using YOLO.",
+        "- Tracks vehicles across frames using DeepSORT.",
+        "- Counts vehicles inside defined regions of the video.",
+        "- Estimates traffic density from vehicle counts and bounding-box area.",
+        "- Classifies congestion as LOW, MEDIUM or HIGH.",
+        "- Recommends green times for each region based on the estimated density.",
+        "- Saves an annotated output video.",
+    ]))
 
-    with col1:
+    st.markdown("\n".join([
+        "**Limitations**",
+        "",
+        "- Only the first 5 seconds of the selected video are analysed.",
+        "- Vehicles are counted inside fixed rectangular regions defined in the code.",
+        "- Density is an estimate and is not calibrated to real road measurements.",
+        "- The emergency vehicle module is not connected to the video analysis.",
+    ]))
+
+    st.caption(
+        f"Congestion thresholds: LOW below {density_config.low_threshold}, "
+        f"HIGH at or above {density_config.high_threshold}. "
+        f"Green time limits: {signal_config.min_green_time} s to {signal_config.max_green_time} s."
+    )
+
+
+# ============================================================================
+# TAB 2 - TRAFFIC ANALYSIS
+# ============================================================================
+with tab_video:
+    st.markdown('<div class="section-heading">Traffic Analysis</div>',
+                unsafe_allow_html=True)
+    st.caption("Analyse a recorded traffic video using YOLO vehicle detection and DeepSORT tracking.")
+
+    upload_col, meta_col = st.columns([1, 1])
+
+    sample_video = REPO_ROOT / "data" / "raw" / "Sample_1.mp4"
+    video_path_to_inspect = str(sample_video) if sample_video.exists() else None
+    source_label = f"Sample video: {sample_video.name}"
+
+    with upload_col:
+        st.markdown("#### Select Video")
         uploaded_file = st.file_uploader(
-            "Upload Traffic Video File:",
-            type=["mp4", "avi", "mov"],
-            help="Select a recorded traffic video from your system."
+            "Upload another traffic video (optional):",
+            type=["mp4", "avi", "mov"]
         )
 
-        # Check if local sample video exists in workspace
-        parent_dir = REPO_ROOT.parent
-        existing_sample = parent_dir / "MAJOR project phase 1 ai video.mp4"
-        use_sample = False
-        if existing_sample.exists():
-            st.caption(f"📁 Local sample video found in project folder: `{existing_sample.name}`")
-            if st.button("Load Workspace Phase 1 Traffic Video", use_container_width=True):
-                use_sample = True
+        if uploaded_file is not None:
+            upload_dir = REPO_ROOT / "data" / "processed"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            suffix = Path(uploaded_file.name).suffix or ".mp4"
+            upload_path = upload_dir / f"dashboard_upload{suffix}"
+            upload_path.write_bytes(uploaded_file.getvalue())
+            video_path_to_inspect = str(upload_path)
+            source_label = f"Uploaded video: {uploaded_file.name}"
+        elif video_path_to_inspect:
+            st.info(f"Default video: {sample_video.name}")
+        else:
+            st.error("Sample_1.mp4 was not found in data/raw/.")
 
-    video_path_to_inspect = None
-
-    if uploaded_file is not None:
-        # Save to temporary file for OpenCV inspection
-        tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-        tfile.write(uploaded_file.read())
-        tfile.close()
-        video_path_to_inspect = tfile.name
-        source_name = uploaded_file.name
-    elif use_sample or st.session_state.get("loaded_sample"):
-        st.session_state["loaded_sample"] = True
-        video_path_to_inspect = str(existing_sample)
-        source_name = existing_sample.name
+    if not det_ok:
+        st.warning("YOLO detector is not ready. Check the model weights before analysis.")
+    else:
+        st.success("YOLO vehicle detector is ready.")
 
     if video_path_to_inspect:
         metadata = extract_video_metadata(video_path_to_inspect)
 
-        with col2:
-            st.markdown("#### 📊 Stream Telemetry & Metadata")
+        with meta_col:
+            st.markdown("#### Video Information")
+            st.caption("Values read from the video file using OpenCV.")
             if "error" in metadata:
                 st.error(metadata["error"])
             else:
-                m1, m2 = st.columns(2)
-                m1.metric("Resolution", metadata["resolution"])
-                m2.metric("Frame Rate", f"{metadata['fps']} FPS")
-
-                m3, m4 = st.columns(2)
-                m3.metric("Total Frames", f"{metadata['frame_count']:,}")
-                m4.metric("Est. Duration", metadata["duration_formatted"])
-
-                st.caption(f"Codec: `{metadata['codec']}` | Source: `{source_name}`")
+                c1, c2 = st.columns(2)
+                c1.metric("Resolution",   metadata["resolution"])
+                c2.metric("Frame Rate",   f"{metadata['fps']} FPS")
+                c3, c4 = st.columns(2)
+                c3.metric("Total Frames", f"{metadata['frame_count']:,}")
+                c4.metric("Duration",     metadata["duration_formatted"])
+                st.caption(f"Codec: `{metadata['codec']}`  |  Source: `{source_label}`")
 
         st.divider()
-        st.markdown("#### 🎬 Video Stream Preview")
+
+        # ── Video preview ──────────────────────────────────────────────────
+        st.markdown("#### Video Preview")
         v_col, info_col = st.columns([2, 1])
 
         with v_col:
-            st.video(video_path_to_inspect)
+            try:
+                st.video(video_path_to_inspect)
+            except Exception as e:
+                st.warning(f"Video preview unavailable: {e}")
 
         with info_col:
-            st.markdown("#### 🔍 Processing Pipeline Status")
-            st.info(
-                "**Mid-Term Stage:** Video stream is successfully decoded, validated, and ready for frame-by-frame extraction."
-            )
-            st.markdown("""
-            **Next Phase III Actions:**
-            1. Place `yolov8n.pt` into `models/weights/`.
-            2. Run `pip install ultralytics deep-sort-realtime`.
-            3. Trajectory tracking and virtual line counters will automatically overlay on this feed.
-            """)
-
-            if st.button("Simulate Frame Extraction Check", use_container_width=True):
+            st.markdown("#### Frame Check")
+            if st.button("Check Frame Reading", use_container_width=True):
                 cap = cv2.VideoCapture(video_path_to_inspect)
                 ret, frame = cap.read()
                 cap.release()
                 if ret and frame is not None:
-                    st.success(f"Successfully extracted Frame 0 (Shape: {frame.shape}). Decoder confirmed functional.")
+                    st.success(f"First frame read successfully. Shape: `{frame.shape}` (height, width, channels)")
                 else:
-                    st.error("Frame extraction check failed.")
+                    st.error("Could not read a frame from the video.")
 
+    st.divider()
+    st.markdown("#### Run Analysis")
 
-# TAB 2: Interactive Adaptive Signal Advisory Simulator
-with tab_sim:
-    st.subheader("2. Interactive Adaptive Signal Timing Simulator")
-    st.write(
-        "Demonstrates the **proportional demand adaptive signal allocation algorithm**. "
-        "Adjust vehicular volume across 4 intersection approaches to observe how the system "
-        "dynamically optimizes green light durations compared to rigid fixed-time cycles."
-    )
+    if st.button("Run Traffic Analysis", type="primary", use_container_width=True):
+        if not det_ok:
+            st.error("YOLO detector is not ready. Check models/weights/yolov8n.pt.")
+        elif not video_path_to_inspect:
+            st.error("Select a valid video before starting analysis.")
+        else:
+            with st.spinner("Running YOLO detection, DeepSORT tracking and traffic analysis..."):
+                try:
+                    result = process_traffic_video(
+                        video_path=video_path_to_inspect,
+                        detector=st.session_state["detector"],
+                        max_duration_seconds=5
+                    )
+                    st.session_state["traffic_analysis_result"] = result
+                    st.success("Traffic analysis completed.")
+                except Exception as exc:
+                    st.error(f"Analysis failed: {exc}")
 
-    sim_col1, sim_col2 = st.columns([1, 1])
+    result = st.session_state.get("traffic_analysis_result")
 
-    with sim_col1:
-        st.markdown("#### 🚗 Directional Traffic Inputs")
-        north_v = st.slider("North Approach (Vehicles):", 0, 40, 22)
-        south_v = st.slider("South Approach (Vehicles):", 0, 40, 18)
-        east_v = st.slider("East Approach (Vehicles):", 0, 40, 6)
-        west_v = st.slider("West Approach (Vehicles):", 0, 40, 4)
+    if result:
+        st.markdown("#### Annotated Traffic Video")
+        import subprocess
 
-        st.markdown("#### 🚨 Emergency Vehicle Override")
-        emerg_choice = st.selectbox(
-            "Flag Emergency Vehicle on Lane:",
-            ["None", "North", "South", "East", "West"],
-            help="Simulates an approaching ambulance or fire engine."
+        original_video = Path(result["output_path"])
+        browser_video = original_video.with_name(
+            original_video.stem + "_h264.mp4"
         )
-        selected_emerg = None if emerg_choice == "None" else emerg_choice
 
-    # Calculate densities
-    sim_counts = {"North": north_v, "South": south_v, "East": east_v, "West": west_v}
-    sim_densities = {
-        lane: calculate_lane_density(count, [5000.0 * count], lane_area=150000.0, max_capacity=25)
-        for lane, count in sim_counts.items()
-    }
-
-    # Run signal advisor algorithm
-    signal_result = calculate_adaptive_signal_times(
-        lane_densities=sim_densities,
-        emergency_lane=selected_emerg,
-        min_green=signal_config.min_green_time,
-        max_green=signal_config.max_green_time,
-        yellow_time=signal_config.yellow_time,
-        all_red=signal_config.all_red_clearance,
-        target_cycle_time=signal_config.target_cycle_time
-    )
-
-    with sim_col2:
-        st.markdown("#### ⏱️ Optimized Signal Timing Output")
-
-        if signal_result["emergency_active"]:
-            st.error(
-                f"🚨 **EMERGENCY PREEMPTION ACTIVE:** Emergency vehicle detected on **{signal_result['priority_lane']} Approach**! "
-                f"Corridor granted {signal_config.emergency_green_time}s priority green clearance."
-            )
-
-        g_times = signal_result["green_times"]
-        cong_states = signal_result["congestion_levels"]
-
-        cols = st.columns(4)
-        for i, lane in enumerate(["North", "South", "East", "West"]):
-            with cols[i]:
-                g_val = g_times.get(lane, 15)
-                c_val = cong_states.get(lane, "LOW")
-                st.metric(
-                    f"{lane} Green",
-                    f"{g_val} s",
-                    delta=f"{g_val - signal_config.default_green_time}s vs Fixed (30s)",
-                    delta_color="normal"
+        try:
+            if (
+                not browser_video.exists()
+                or browser_video.stat().st_mtime < original_video.stat().st_mtime
+            ):
+                subprocess.run(
+                    [
+                        "ffmpeg", "-y", "-i", str(original_video),
+                        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                        "-movflags", "+faststart", "-an", str(browser_video)
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True
                 )
-                if c_val == "HIGH":
-                    st.error(f"Congestion: {c_val}")
-                elif c_val == "MEDIUM":
-                    st.warning(f"Congestion: {c_val}")
-                else:
-                    st.success(f"Congestion: {c_val}")
 
-        st.divider()
-        st.markdown("#### 📈 Comparative Efficiency Analysis")
-        comp1, comp2, comp3 = st.columns(3)
-        comp1.metric("Calculated Cycle Length", f"{signal_result['total_cycle_time']} s")
-        comp2.metric("Fixed-Cycle Baseline", f"{(4 * 30) + (4 * 6)} s")
-        
-        # Simulated delay reduction estimate
-        total_veh = sum(sim_counts.values())
-        highest_v = max(sim_counts.values())
-        efficiency_gain = "Optimal" if highest_v > 15 else "Balanced"
-        comp3.metric("System State", efficiency_gain)
+            st.video(str(browser_video))
+
+        except Exception as exc:
+            st.error(f"Could not prepare the annotated video: {exc}")
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Frames processed", f'{result["frames_processed"]:,}')
+        m2.metric("YOLO detections", f'{result["detections"]:,}')
+        m3.metric("Source FPS", f'{result["fps"]:.2f}')
+
+        st.markdown("#### Region Analysis")
+        region_rows = []
+        for region, data in result["regions"].items():
+            region_rows.append({
+                "Region": region,
+                "Peak vehicles": data["peak_vehicles"],
+                "Unique tracker IDs": data["unique_tracker_ids"],
+                "Frames with vehicles": data["frames_with_vehicles"],
+                "Average estimated density": round(data["average_density"], 3),
+                "Peak estimated density": round(data["peak_density"], 3),
+                "Peak congestion": data["peak_congestion"]
+            })
+
+        st.dataframe(region_rows, use_container_width=True, hide_index=True)
 
         st.caption(
-            "Algorithm guarantees: Green time is strictly bounded between 15s (pedestrian safety) "
-            "and 90s (anti-starvation). Yellow time = 4s, All-Red = 2s."
+            "Density is an estimate based on detected vehicle counts and bounding-box area. "
+            "Tracker IDs may split when a vehicle is temporarily lost."
         )
 
+        st.caption("Signal timing recommendations based on these results are shown in the Signal Recommendations tab.")
 
-# TAB 3: System Architecture
+    else:
+        st.info("Select Sample_1.mp4 or upload a video, then click Run Traffic Analysis.")
+
+
+
+
+# ============================================================================
+# TAB 3 - SIGNAL RECOMMENDATIONS
+# ============================================================================
+with tab_sim:
+    st.markdown('<div class="section-heading">Signal Recommendations</div>',
+                unsafe_allow_html=True)
+
+    result = st.session_state.get("traffic_analysis_result")
+
+    if not result:
+        st.info("No analysis results yet. Run the analysis in the Traffic Analysis tab first.")
+    else:
+        lane_densities = {
+            name: data["average_density"]
+            for name, data in result["regions"].items()
+        }
+        signal_plan = calculate_adaptive_signal_times(lane_densities)
+
+        baseline = signal_config.default_green_time
+        rows = []
+        for region, green_time in signal_plan["green_times"].items():
+            diff = green_time - baseline
+            rows.append({
+                "Region": region,
+                "Average estimated density": round(lane_densities[region], 3),
+                "Estimated congestion": signal_plan["congestion_levels"][region],
+                "Recommended green time (s)": green_time,
+                f"Difference from fixed {baseline} s": f"{diff:+d} s",
+            })
+
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+        st.caption(
+            f'Recommended cycle time: {signal_plan["total_cycle_time"]} seconds '
+            "(green time plus yellow and all-red intervals). "
+            "These are software-generated suggestions, not live signal commands."
+        )
+
+        fig_signal = draw_signal_comparison(signal_plan["green_times"], baseline)
+        st.pyplot(fig_signal, use_container_width=True)
+        plt.close(fig_signal)
+
+        st.markdown("#### How the Recommendation Is Calculated")
+        st.markdown("\n".join([
+            f"- Each region starts with the minimum green time of {signal_config.min_green_time} s.",
+            "- The remaining time in the target cycle "
+            f"({signal_config.target_cycle_time} s) is shared between regions in proportion to their average density.",
+            f"- Each green time is limited to {signal_config.min_green_time} s to {signal_config.max_green_time} s.",
+            f"- Yellow ({signal_config.yellow_time} s) and all-red ({signal_config.all_red_clearance} s) "
+            "intervals are added for each region.",
+            "- The density values are based on the first 5 seconds of the video, so the "
+            "recommendations are a demonstration and not a validated signal plan.",
+        ]))
+
+
+
+# ============================================================================
+# TAB 4 - SYSTEM ARCHITECTURE
+# ============================================================================
 with tab_arch:
-    st.subheader("3. System Architecture & Pipeline Dataflow")
-    st.write("Detailed end-to-end dataflow from recorded traffic video to adaptive signal recommendations:")
+    st.markdown('<div class="section-heading">System Architecture</div>',
+                unsafe_allow_html=True)
+    st.write("Processing pipeline used by the Traffic Analysis tab:")
 
-    st.markdown("""
-    ```
-    +---------------------------------------------------------------------------------------+
-    |                                SYSTEM DATAFLOW PIPELINE                               |
-    +---------------------------------------------------------------------------------------+
-    |                                                                                       |
-    |  [1. Video Ingestion] ---> Standard MP4/AVI Video / CCTV Feed                        |
-    |           |                                                                           |
-    |           v                                                                           |
-    |  [2. Video Preprocessing] -> Frame Extraction, Resolution Scaling, ROI Lane Masking  |
-    |           |                                                                           |
-    |           v                                                                           |
-    |  [3. Vehicle Detection] ---> YOLO Model (Cars, Motorcycles, Buses, Trucks)            |
-    |           |                                                                           |
-    |           v                                                                           |
-    |  [4. Vehicle Tracking] ----> DeepSORT Tracker (Kalman Filter + Deep Appearance Re-ID) |
-    |           |                                                                           |
-    |           v                                                                           |
-    |  [5. Traffic Analytics] ---> Directional Counting + Composite Density (Count + Area)  |
-    |           |                                                                           |
-    |           +-------------------------------+                                           |
-    |           |                               |                                           |
-    |           v                               v                                           |
-    |  [6. Congestion Classifier]    [7. Emergency Detection]                               |
-    |       (Low / Med / High)         (Ambulance Priority Flag)                            |
-    |           |                               |                                           |
-    |           +---------------+---------------+                                           |
-    |                           |                                                           |
-    |                           v                                                           |
-    |  [8. Traffic Decision Engine] -> Proportional Demand Allocation & Emergency Override  |
-    |           |                                                                           |
-    |           v                                                                           |
-    |  [9. Presentation & Storage] -> Streamlit Operator Dashboard & CSV Analytics Logging  |
-    +---------------------------------------------------------------------------------------+
-    ```
-    """)
+    st.code("""Recorded traffic video (data/raw/Sample_1.mp4 or uploaded file)
+    |
+    v
+Frame reading (OpenCV)
+    |
+    v
+Vehicle detection (YOLO)
+    |
+    v
+Vehicle tracking (DeepSORT)
+    |
+    v
+Vehicle counting inside defined regions
+    |
+    v
+Density estimate and congestion level (LOW / MEDIUM / HIGH)
+    |
+    v
+Signal timing recommendation
+    |
+    v
+Annotated output video and results shown in this dashboard""", language="text")
+
+    st.markdown("#### Source Files")
+    st.dataframe([
+        {"Stage": "Pipeline control", "File": "src/traffic_analysis/dashboard_pipeline.py"},
+        {"Stage": "Vehicle detection", "File": "src/detection/detector.py"},
+        {"Stage": "Vehicle tracking", "File": "src/tracking/tracker.py"},
+        {"Stage": "Region counting", "File": "src/traffic_analysis/vehicle_counter.py"},
+        {"Stage": "Density and congestion", "File": "src/traffic_analysis/density.py"},
+        {"Stage": "Signal recommendation", "File": "src/traffic_analysis/signal_advisor.py"},
+        {"Stage": "Settings", "File": "src/config.py"},
+    ], use_container_width=True, hide_index=True)
+
+    st.markdown("#### Calculations")
+    st.markdown("**Density estimate for a region**")
+    st.latex(r"\rho = w_c \cdot \frac{N}{C_{max}} + w_a \cdot \frac{\sum A_{bbox}}{A_{region}}")
+    st.caption(
+        f"N is the vehicle count in the region, and the sum of A_bbox is the total bounding-box area. "
+        f"A_region is the region area in pixels. w_c = {density_config.weight_vehicle_count}, "
+        f"w_a = {density_config.weight_area_occupancy}, C_max = {density_config.default_lane_capacity} vehicles. "
+        "Both ratios are capped at 1.0."
+    )
+    st.markdown("**Congestion level**")
+    st.caption(
+        f"LOW if density is below {density_config.low_threshold}, "
+        f"MEDIUM if below {density_config.high_threshold}, otherwise HIGH."
+    )
+    st.markdown("**Green time**")
+    st.caption(
+        f"Each region gets {signal_config.min_green_time} s plus a share of the remaining cycle time "
+        "in proportion to its density, limited to "
+        f"{signal_config.max_green_time} s."
+    )
 
 
-# TAB 4: Evaluation Checklist
-with tab_eval:
-    st.subheader("4. Academic Evaluation Checklist & Milestone Status")
 
-    m_col, p3_col = st.columns(2)
+# ============================================================================
+# TAB 5 - IMPLEMENTATION STATUS
+# ============================================================================
+with tab_status:
+    st.markdown('<div class="section-heading">Implementation Status</div>',
+                unsafe_allow_html=True)
 
-    with m_col:
-        st.markdown("### 🎯 Mid-Term Evaluation Checklist")
-        st.checkbox("Approved Title, Problem Definition & Institutional Context", value=True, disabled=True)
-        st.checkbox("Literature Survey Synthesizing 20 Peer-Reviewed Papers", value=True, disabled=True)
-        st.checkbox("System Architecture & Dataflow Diagrams Formulated", value=True, disabled=True)
-        st.checkbox("Mathematical Models for Density & Adaptive Timing Specified", value=True, disabled=True)
-        st.checkbox("Clean GitHub-Ready Repository with Standard Directory Structure", value=True, disabled=True)
-        st.checkbox("Runnable Baseline Streamlit Dashboard with Video Metadata Ingestion", value=True, disabled=True)
-        st.checkbox("Unit Smoke Tests Validating Signal Logic Invariants", value=True, disabled=True)
-        st.success("Mid-Term Requirements: Ready for presentation.")
+    st.dataframe([
+        {"Module": "Video input and preview", "Status": "Implemented", "Notes": "Default video is data/raw/Sample_1.mp4; other videos can be uploaded."},
+        {"Module": "YOLO vehicle detection", "Status": "Implemented", "Notes": "Detects cars, motorcycles, buses and trucks."},
+        {"Module": "DeepSORT tracking", "Status": "Implemented", "Notes": "Assigns tracker IDs to detected vehicles."},
+        {"Module": "Region vehicle counting", "Status": "Implemented", "Notes": "Two fixed rectangular regions (Region A and Region B)."},
+        {"Module": "Density and congestion estimate", "Status": "Implemented", "Notes": "Based on vehicle count and bounding-box area."},
+        {"Module": "Signal timing recommendation", "Status": "Implemented", "Notes": "Proportional green time based on estimated density."},
+        {"Module": "Annotated output video", "Status": "Implemented", "Notes": "Saved to results/dashboard_traffic_analysis.mp4."},
+        {"Module": "Emergency vehicle handling", "Status": "Not connected", "Notes": "Module exists but is not used by the video analysis."},
+        {"Module": "Accuracy evaluation", "Status": "Pending", "Notes": "No comparison against ground-truth counts yet."},
+    ], use_container_width=True, hide_index=True)
 
-    with p3_col:
-        st.markdown("### 🚀 Phase III Implementation Checklist")
-        st.checkbox("Place Verified YOLO Weights (`yolov8n.pt`) in `models/weights/`", value=False)
-        st.checkbox("Integrate Live Bounding-Box Detection Pipeline", value=False)
-        st.checkbox("Integrate DeepSORT Tracking & Identity Association", value=False)
-        st.checkbox("Measure Counting Accuracy (MAPE) vs Manual Ground-Truth", value=False)
-        st.checkbox("Record Hardware Throughput Benchmarks (FPS on CPU/GPU)", value=False)
-        st.checkbox("Demonstrate Emergency Vehicle Priority Override on Video", value=False)
-        st.checkbox("Final Project Defense Presentation & Technical Report", value=False)
-        st.info("Phase III Requirements: Scheduled for active development.")
+    st.caption(
+        "The system analyses recorded video only. It does not control real traffic signals."
+    )

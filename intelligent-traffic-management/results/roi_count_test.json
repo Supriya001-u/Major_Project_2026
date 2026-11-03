@@ -1,0 +1,30 @@
+{
+    "video": "data/raw/Sample_1.mp4",
+    "frames_processed": 299,
+    "detections": 1432,
+    "frames_with_confirmed_tracks": 295,
+    "regions": {
+        "Region A": {
+            "current_vehicles": 0,
+            "unique_vehicles_seen": 4,
+            "peak_vehicles": 1,
+            "frames_with_vehicles": 35,
+            "peak_density": 0.2438,
+            "average_density": 0.0125,
+            "peak_congestion": "LOW",
+            "final_density": 0.0,
+            "final_congestion": "LOW"
+        },
+        "Region B": {
+            "current_vehicles": 0,
+            "unique_vehicles_seen": 7,
+            "peak_vehicles": 2,
+            "frames_with_vehicles": 197,
+            "peak_density": 0.54,
+            "average_density": 0.2401,
+            "peak_congestion": "MEDIUM",
+            "final_density": 0.0,
+            "final_congestion": "LOW"
+        }
+    }
+}

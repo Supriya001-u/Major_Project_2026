@@ -106,6 +106,8 @@ class VehicleDetector:
                 conf=self.confidence_threshold,
                 iou=self.iou_threshold,
                 classes=list(self.target_classes.keys()),
+                imgsz=640,
+                device="cpu",
                 verbose=False
             )
             
